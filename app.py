@@ -1,23 +1,12 @@
-"""
-Amrit Mattha — Backend API
-Flask + SQLite. Serves the frontend HTML AND the API.
-Run: python app.py
-"""
-
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_file
 from flask_cors import CORS
 import sqlite3, os, datetime, json
 
-# Tell Flask: the frontend/ folder is where our HTML lives
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FRONTEND_DIR = os.path.join(BASE_DIR, '..', 'frontend')
-
-app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path='')
+app = Flask(__name__)
 CORS(app)
 
-DB_PATH = os.path.join(BASE_DIR, "amrit_mattha.db")
+DB_PATH = os.path.join(os.path.dirname(__file__), "amrit_mattha.db")
 
-# ── DB setup ──────────────────────────────────────────────────────────────────
 def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -39,13 +28,6 @@ def init_db():
         conn.commit()
     print("✅ Database ready:", DB_PATH)
 
-# ── Serve the frontend app ────────────────────────────────────────────────────
-@app.route('/')
-def index():
-    # This sends frontend/index.html to whoever visits the root URL
-    return send_from_directory(FRONTEND_DIR, 'index.html')
-
-# ── Menu ──────────────────────────────────────────────────────────────────────
 MENU = [
     {"id": 1,  "category": "Beverages",       "name": "Masala Chaas",              "price": 30,  "emoji": "🥛"},
     {"id": 2,  "category": "Beverages",       "name": "Masala Chaas + Butter",     "price": 35,  "emoji": "🧈"},
@@ -62,7 +44,17 @@ MENU = [
     {"id": 13, "category": "Dairy Fresh",     "name": "White Butter (1 kg)",       "price": 600, "emoji": "🧈"},
 ]
 
-# ── API Routes ────────────────────────────────────────────────────────────────
+@app.route("/")
+def home():
+    """Absolute foolproof way to serve index.html"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    html_path = os.path.join(current_dir, "index.html")
+    if os.path.exists(html_path):
+        return send_file(html_path)
+    else:
+        # If it fails, it will print exactly where it expected to find the file!
+        return f"<h1>Error: index.html not found!</h1><p>I am looking exactly here: {html_path}</p>", 404
+
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok", "app": "Amrit Mattha Billing API"})
@@ -76,13 +68,18 @@ def create_order():
     data = request.json
     if not data or not all(k in data for k in ["id","time","items","total","payment"]):
         return jsonify({"error": "Missing fields"}), 400
+    
+    # Safely format payment string to prevent database crashes
+    raw_payment = str(data["payment"]).lower()
+    clean_payment = "online" if "upi" in raw_payment or "online" in raw_payment or "paytm" in raw_payment else "cash"
+    
     date_str = data["time"][:10]
     with get_db() as conn:
         conn.execute("""
             INSERT INTO orders (order_uid, date, time, total, payment, items_json)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (str(data["id"]), date_str, data["time"],
-              int(data["total"]), data["payment"], json.dumps(data["items"])))
+              int(data["total"]), clean_payment, json.dumps(data["items"])))
         conn.commit()
     return jsonify({"status": "saved"}), 201
 
@@ -114,17 +111,6 @@ def reconcile():
                     "total": total, "orders": count,
                     "avg_bill": round(total/count) if count else 0})
 
-@app.route("/")
-def home():
-    """This is the front door. It serves the index.html file."""
-    import os
-    if os.path.exists("index.html"):
-        with open("index.html", "r", encoding="utf-8") as f:
-            return f.read()
-    return "<h1>Error: index.html not found!</h1>", 404
-
 if __name__ == "__main__":
     init_db()
-    print("🚀 Open the app at: http://localhost:5000")
-    print("📱 For phone on same Wi-Fi, use: http://YOUR_LAPTOP_IP:5000")
     app.run(debug=True, host="0.0.0.0", port=5000)
