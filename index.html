@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Amrit Mattha — Billing</title>
+<style>
+  :root {
+    --green: #1a5c35;
+    --green-light: #e8f5ee;
+    --green-mid: #2ea86b;
+    --orange: #e8700a;
+    --orange-light: #fff3e8;
+    --text: #1a1a1a;
+    --text-muted: #6b6b6b;
+    --border: #e0e0e0;
+    --white: #ffffff;
+    --bg: #f4f7f5;
+    --red: #c0392b;
+    --blue: #1a56db;
+    --shadow: 0 2px 8px rgba(0,0,0,0.08);
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ── Header ── */
+  .header { background: var(--green); color: white; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-logo { font-size: 24px; }
+  .brand-name { font-size: 15px; font-weight: 800; line-height: 1.2; }
+  .brand-sub { font-size: 10px; opacity: 0.75; letter-spacing: 0.2px; }
+  .nav-pills { display: flex; gap: 6px; }
+  .pill { background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.28); color: white; padding: 7px 12px; border-radius: 20px; font-size: 12px; cursor: pointer; font-weight: 600; transition: background 0.15s; white-space: nowrap; }
+  .pill:hover, .pill.active { background: rgba(255,255,255,0.28); }
+
+  /* ── Status bar ── */
+  .status-bar { display: flex; align-items: center; gap: 6px; padding: 6px 16px; font-size: 11px; font-weight: 600; }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #aaa; flex-shrink: 0; }
+  .status-dot.online { background: #27ae60; }
+  .status-dot.offline { background: #e74c3c; }
+  .status-txt { color: var(--text-muted); }
+
+  /* ── Pages ── */
+  .page { display: none; padding: 12px 14px; max-width: 520px; margin: 0 auto; }
+  .page.active { display: block; }
+
+  /* ── Category headers ── */
+  .cat-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--green); background: var(--green-light); border-left: 3px solid var(--green); padding: 5px 10px; border-radius: 0 6px 6px 0; margin: 14px 0 8px; }
+
+  /* ── Menu grid ── */
+  .menu-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+  .item-btn { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 12px 11px; cursor: pointer; text-align: left; transition: all 0.12s; position: relative; box-shadow: var(--shadow); }
+  .item-btn:active { transform: scale(0.96); }
+  .item-btn.in-cart { border-color: var(--green); background: var(--green-light); }
+  .item-emoji { font-size: 20px; display: block; margin-bottom: 5px; }
+  .item-name { font-size: 13px; font-weight: 600; display: block; line-height: 1.3; }
+  .item-price { font-size: 13px; color: var(--green); font-weight: 800; margin-top: 4px; display: block; }
+  .qty-badge { position: absolute; top: -6px; right: -6px; background: var(--green); color: white; border-radius: 50%; width: 21px; height: 21px; font-size: 11px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+
+  /* ── Section title ── */
+  .sec-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin: 14px 0 8px; }
+
+  /* ── Bill card ── */
+  .bill-card { background: var(--white); border-radius: 14px; box-shadow: var(--shadow); overflow: hidden; margin-bottom: 14px; }
+  .bill-head { background: var(--green); color: white; padding: 11px 14px; font-weight: 700; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .bill-body { padding: 0 14px; }
+  .bill-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .bill-row:last-child { border-bottom: none; }
+  .row-left { display: flex; align-items: center; gap: 8px; }
+  .qty-ctrl { display: flex; align-items: center; gap: 5px; }
+  .qbtn { width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--bg); cursor: pointer; font-size: 15px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .qbtn:hover { background: var(--border); }
+  .qval { font-weight: 700; min-width: 16px; text-align: center; }
+  .rm-btn { color: var(--red); border: none; background: none; cursor: pointer; font-size: 18px; padding: 2px 6px; }
+  .bill-total { padding: 13px 14px; background: var(--green-light); border-top: 2px solid var(--green); display: flex; justify-content: space-between; align-items: center; }
+  .total-lbl { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+  .total-amt { font-size: 28px; font-weight: 900; color: var(--green); }
+
+  .empty-bill { text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 14px; }
+  .empty-big { font-size: 44px; margin-bottom: 10px; }
+
+  /* ── Payment toggle ── */
+  .pay-toggle { display: flex; background: var(--white); border-radius: var(--radius); padding: 5px; gap: 5px; margin-bottom: 12px; box-shadow: var(--shadow); border: 1.5px solid var(--border); }
+  .pay-opt { flex: 1; padding: 11px; border-radius: 9px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; transition: all 0.15s; background: transparent; color: var(--text-muted); text-align: center; font-family: inherit; }
+  .pay-opt.sel-cash { background: var(--orange); color: white; }
+  .pay-opt.sel-online { background: var(--blue); color: white; }
+
+  /* ── Confirm button ── */
+  .confirm-btn { width: 100%; background: var(--green); color: white; border: none; border-radius: 14px; padding: 17px; font-size: 17px; font-weight: 900; cursor: pointer; transition: all 0.15s; box-shadow: 0 4px 14px rgba(26,92,53,0.3); font-family: inherit; }
+  .confirm-btn:active { background: #123d24; transform: scale(0.98); }
+  .confirm-btn:disabled { background: var(--border); color: var(--text-muted); box-shadow: none; cursor: not-allowed; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a1a; color: white; padding: 11px 22px; border-radius: 30px; font-size: 13px; font-weight: 600; z-index: 999; transition: transform 0.25s ease; white-space: nowrap; pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── Reconcile page ── */
+  .date-row { display: flex; align-items: center; gap: 8px; background: var(--white); padding: 11px 14px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 14px; }
+  .date-row label { font-size: 12px; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+  .date-row input { flex: 1; border: 1.5px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 13px; font-family: inherit; }
+  .go-btn { background: var(--green); color: white; border: none; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 9px; margin-bottom: 12px; }
+  .stat-card { background: var(--white); border-radius: var(--radius); padding: 13px 10px; text-align: center; box-shadow: var(--shadow); }
+  .stat-val { font-size: 20px; font-weight: 900; }
+  .stat-val.g { color: var(--green); }
+  .stat-val.o { color: var(--orange); }
+  .stat-val.b { color: var(--blue); }
+  .stat-lbl { font-size: 10px; color: var(--text-muted); font-weight: 700; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .stats-wide { background: var(--white); border-radius: var(--radius); padding: 13px 14px; box-shadow: var(--shadow); margin-bottom: 14px; display: flex; justify-content: space-between; }
+  .stats-wide-item .lbl { font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px; }
+  .stats-wide-item .val { font-size: 22px; font-weight: 900; margin-top: 3px; }
+
+  .orders-list { display: flex; flex-direction: column; gap: 9px; margin-bottom: 80px; }
+  .order-card { background: var(--white); border-radius: var(--radius); padding: 11px 13px; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: flex-start; }
+  .order-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 3px; }
+  .order-items { font-size: 12px; font-weight: 500; max-width: 240px; line-height: 1.4; }
+  .order-right { text-align: right; }
+  .order-amt { font-size: 15px; font-weight: 800; }
+  .chip { display: inline-block; padding: 3px 8px; border-radius: 20px; font-size: 10px; font-weight: 800; margin-top: 4px; }
+  .chip-cash { background: var(--orange-light); color: var(--orange); }
+  .chip-online { background: #e8f0fe; color: var(--blue); }
+
+  .no-orders { text-align: center; color: var(--text-muted); padding: 40px 20px; font-size: 14px; }
+
+  /* ── Receipt modal ── */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .overlay.open { display: flex; }
+  .modal { background: white; border-radius: 16px; padding: 22px; width: 100%; max-width: 360px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+  .receipt-top { text-align: center; margin-bottom: 14px; }
+  .receipt-title { font-size: 17px; font-weight: 900; color: var(--green); }
+  .receipt-sub { font-size: 11px; color: var(--text-muted); }
+  .r-divider { border: none; border-top: 1.5px dashed var(--border); margin: 12px 0; }
+  .r-line { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 7px; }
+  .r-total { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; margin-top: 6px; }
+  .r-pay { text-align: center; margin-top: 12px; }
+  .r-pay-chip { display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+  .modal-btns { display: flex; gap: 9px; margin-top: 18px; }
+  .mbtn { flex: 1; padding: 12px; border-radius: 10px; border: none; cursor: pointer; font-size: 13px; font-weight: 700; font-family: inherit; }
+  .mbtn-sec { background: var(--bg); color: var(--text); border: 1.5px solid var(--border); }
+  .mbtn-pri { background: var(--green); color: white; }
+
+  .gap { height: 12px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="brand">
+    <span class="brand-logo">🥛</span>
+    <div>
+      <div class="brand-name">Amrit Mattha</div>
+      <div class="brand-sub">by Bolte Laddoo · Since 1963 · Kanpur</div>
+    </div>
+  </div>
+  <div class="nav-pills">
+    <button class="pill active" onclick="showPage('bill')" id="nav-bill">🧾 Billing</button>
+    <button class="pill" onclick="showPage('reconcile')" id="nav-reconcile">📊 Today</button>
+  </div>
+</div>
+
+<!-- Sync status -->
+<div class="status-bar" id="status-bar">
+  <div class="status-dot" id="status-dot"></div>
+  <span class="status-txt" id="status-txt">Connecting…</span>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══ BILLING PAGE ══ -->
+<div class="page active" id="page-bill">
+  <div id="menu-container">
+    <div style="text-align:center;padding:30px;color:var(--text-muted);">Loading menu…</div>
+  </div>
+
+  <div class="gap"></div>
+  <p class="sec-title">Current Bill</p>
+
+  <div id="bill-area">
+    <div class="empty-bill"><div class="empty-big">🧾</div>Tap items above to start a bill</div>
+  </div>
+
+  <div id="bill-controls" style="display:none;">
+    <div class="pay-toggle">
+      <button class="pay-opt sel-cash" id="pay-cash" onclick="setPayment('cash')">💵 Cash</button>
+      <button class="pay-opt" id="pay-online" onclick="setPayment('online')">📱 Paytm / UPI</button>
+    </div>
+    <button class="confirm-btn" id="confirm-btn" onclick="confirmBill()">✅ Confirm &amp; Save Bill</button>
+  </div>
+
+  <div class="gap"></div>
+</div>
+
+<!-- ══ RECONCILE PAGE ══ -->
+<div class="page" id="page-reconcile">
+  <div class="date-row">
+    <label>📅 Date</label>
+    <input type="date" id="recon-date" onchange="loadRecon()">
+    <button class="go-btn" onclick="loadRecon()">Go</button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-val o" id="s-cash">₹0</div><div class="stat-lbl">💵 Cash</div></div>
+    <div class="stat-card"><div class="stat-val b" id="s-online">₹0</div><div class="stat-lbl">📱 Online</div></div>
+    <div class="stat-card"><div class="stat-val g" id="s-total">₹0</div><div class="stat-lbl">🏷 Total</div></div>
+  </div>
+
+  <div class="stats-wide">
+    <div class="stats-wide-item"><div class="lbl">Orders</div><div class="val" id="s-orders">0</div></div>
+    <div class="stats-wide-item" style="text-align:right;"><div class="lbl">Avg Bill</div><div class="val" id="s-avg">₹0</div></div>
+  </div>
+
+  <p class="sec-title">Order Log</p>
+  <div class="orders-list" id="orders-list"></div>
+</div>
+
+<!-- ══ RECEIPT MODAL ══ -->
+<div class="overlay" id="receipt-modal">
+  <div class="modal">
+    <div class="receipt-top">
+      <div style="font-size:28px;margin-bottom:5px;">🥛</div>
+      <div class="receipt-title">Amrit Mattha</div>
+      <div class="receipt-sub">by Bolte Laddoo · Since 1963 · Kanpur</div>
+      <div class="receipt-sub">GSTIN: 09CROPM3071N1Z2</div>
+    </div>
+    <hr class="r-divider">
+    <div id="r-lines"></div>
+    <hr class="r-divider">
+    <div class="r-total"><span>TOTAL</span><span id="r-total">₹0</span></div>
+    <div class="r-pay" id="r-pay"></div>
+    <div id="r-time" style="text-align:center;font-size:10px;color:#999;margin-top:8px;"></div>
+    <div class="modal-btns">
+      <button class="mbtn mbtn-sec" onclick="closeModal()">Close</button>
+      <button class="mbtn mbtn-pri" onclick="newBill()">New Bill ✨</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────
+// Change this to your server IP/domain when deploying
+const API = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:5000/api'
+  : '/api';   // same origin when served by Flask in production
+
+// ── State ─────────────────────────────────────────────────────────────────
+let MENU_DATA = [];   // fetched from backend
+let cart = {};        // { itemId: qty }
+let payMethod = 'cash';
+let isOnline = false;
+let pendingQueue = JSON.parse(localStorage.getItem('pendingQueue') || '[]');
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+async function boot() {
+  await checkHealth();
+  await loadMenu();
+  flushPendingQueue();
+}
+
+// ── Health check ──────────────────────────────────────────────────────────
+async function checkHealth() {
+  try {
+    const res = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
+    if (res.ok) setOnline(true);
+  } catch { setOnline(false); }
+}
+
+function setOnline(state) {
+  isOnline = state;
+  const dot = document.getElementById('status-dot');
+  const txt = document.getElementById('status-txt');
+  dot.className = 'status-dot ' + (state ? 'online' : 'offline');
+  txt.textContent = state ? '🟢 Connected — data syncs across all devices' : '🔴 Offline — orders will sync when reconnected';
+}
+
+// ── Menu loading ──────────────────────────────────────────────────────────
+async function loadMenu() {
+  // Try backend first; fall back to bundled menu
+  try {
+    const res = await fetch(`${API}/menu`, { signal: AbortSignal.timeout(4000) });
+    if (res.ok) { MENU_DATA = await res.json(); }
+  } catch { /* use fallback */ }
+
+  if (!MENU_DATA.length) {
+    MENU_DATA = FALLBACK_MENU;
+    showToast('⚠️ Using offline menu');
+  }
+  renderMenu();
+}
+
+// Fallback menu (same as backend) for offline use
+const FALLBACK_MENU = [
+  { id:1,  category:'Beverages',      name:'Masala Chaas',             price:30,  emoji:'🥛' },
+  { id:2,  category:'Beverages',      name:'Masala Chaas + Butter',    price:35,  emoji:'🧈' },
+  { id:3,  category:'Beverages',      name:'Chaas (1 Litre)',          price:80,  emoji:'🫙' },
+  { id:4,  category:'Snacks (Breads)',name:'Plain Bread + Butter',     price:30,  emoji:'🍞' },
+  { id:5,  category:'Snacks (Breads)',name:'Multigrain Bread + Butter',price:30,  emoji:'🌾' },
+  { id:6,  category:'Snacks (Buns)', name:'Plain Bun + Butter',        price:40,  emoji:'🥐' },
+  { id:7,  category:'Snacks (Buns)', name:'Sweet Bun + Butter',        price:60,  emoji:'🍯' },
+  { id:8,  category:'Snacks (Buns)', name:'Multigrain Bun + Butter',   price:60,  emoji:'🌾' },
+  { id:9,  category:'Snacks (Buns)', name:'Masala Multigrain Bun',     price:60,  emoji:'🌶️' },
+  { id:10, category:'Snacks (Buns)', name:'Almond Bun + Butter',       price:60,  emoji:'🌰' },
+  { id:11, category:'Snacks (Buns)', name:'Mango Bun + Crush',         price:60,  emoji:'🥭' },
+  { id:12, category:'Snacks (Buns)', name:'Pineapple Bun + Crush',     price:60,  emoji:'🍍' },
+  { id:13, category:'Dairy Fresh',   name:'White Butter (1 kg)',       price:600, emoji:'🧈' },
+];
+
+// ── Render Menu ───────────────────────────────────────────────────────────
+function renderMenu() {
+  const categories = [...new Set(MENU_DATA.map(i => i.category))];
+  const catIcons = { 'Beverages':'🥤', 'Snacks (Breads)':'🍞', 'Snacks (Buns)':'🥐', 'Dairy Fresh':'🧈' };
+  const html = categories.map(cat => {
+    const items = MENU_DATA.filter(i => i.category === cat);
+    const grid = items.map(item => {
+      const qty = cart[item.id] || 0;
+      return `<button class="item-btn ${qty ? 'in-cart' : ''}" onclick="addItem(${item.id})">
+        ${qty ? `<div class="qty-badge">${qty}</div>` : ''}
+        <span class="item-emoji">${item.emoji}</span>
+        <span class="item-name">${item.name}</span>
+        <span class="item-price">₹${item.price}</span>
+      </button>`;
+    }).join('');
+    return `<div class="cat-label">${catIcons[cat] || '•'} ${cat}</div>
+            <div class="menu-grid">${grid}</div>`;
+  }).join('');
+  document.getElementById('menu-container').innerHTML = html;
+}
+
+// ── Cart ──────────────────────────────────────────────────────────────────
+function addItem(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  renderMenu();
+  renderBill();
+}
+
+function changeQty(id, delta) {
+  cart[id] = (cart[id] || 0) + delta;
+  if (cart[id] <= 0) delete cart[id];
+  renderMenu();
+  renderBill();
+}
+
+function removeItem(id) { delete cart[id]; renderMenu(); renderBill(); }
+
+// ── Render Bill ───────────────────────────────────────────────────────────
+function renderBill() {
+  const keys = Object.keys(cart).filter(k => cart[k] > 0);
+  const area = document.getElementById('bill-area');
+  const ctrl = document.getElementById('bill-controls');
+  if (!keys.length) {
+    area.innerHTML = `<div class="empty-bill"><div class="empty-big">🧾</div>Tap items above to start a bill</div>`;
+    ctrl.style.display = 'none';
+    return;
+  }
+  ctrl.style.display = 'block';
+  let total = 0;
+  const rows = keys.map(k => {
+    const item = MENU_DATA.find(m => m.id == k);
+    const qty = cart[k]; const sub = item.price * qty; total += sub;
+    return `<div class="bill-row">
+      <div class="row-left">
+        <div class="qty-ctrl">
+          <button class="qbtn" onclick="changeQty(${k},-1)">−</button>
+          <span class="qval">${qty}</span>
+          <button class="qbtn" onclick="changeQty(${k},1)">+</button>
+        </div>
+        <span>${item.emoji} ${item.name}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:5px;">
+        <span style="font-weight:700;">₹${sub}</span>
+        <button class="rm-btn" onclick="removeItem(${k})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+  area.innerHTML = `<div class="bill-card">
+    <div class="bill-head"><span>Current Order</span><span>${keys.length} item${keys.length>1?'s':''}</span></div>
+    <div class="bill-body">${rows}</div>
+    <div class="bill-total"><span class="total-lbl">TOTAL</span><span class="total-amt">₹${total}</span></div>
+  </div>`;
+}
+
+// ── Payment ───────────────────────────────────────────────────────────────
+function setPayment(m) {
+  payMethod = m;
+  document.getElementById('pay-cash').className = 'pay-opt' + (m==='cash' ? ' sel-cash' : '');
+  document.getElementById('pay-online').className = 'pay-opt' + (m==='online' ? ' sel-online' : '');
+}
+
+// ── Confirm ───────────────────────────────────────────────────────────────
+async function confirmBill() {
+  const keys = Object.keys(cart).filter(k => cart[k] > 0);
+  if (!keys.length) { showToast('Add items first!'); return; }
+
+  const btn = document.getElementById('confirm-btn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+
+  let total = 0;
+  const items = keys.map(k => {
+    const item = MENU_DATA.find(m => m.id == k);
+    const qty = cart[k]; const sub = item.price * qty; total += sub;
+    return { name: item.name, qty, price: item.price, sub };
+  });
+
+  const order = { id: Date.now(), time: new Date().toISOString(), items, total, payment: payMethod };
+
+  await saveOrder(order);
+  btn.disabled = false; btn.textContent = '✅ Confirm & Save Bill';
+  showReceipt(order);
+}
+
+// ── Save order (online → server, offline → queue) ─────────────────────────
+async function saveOrder(order) {
+  if (isOnline) {
+    try {
+      const res = await fetch(`${API}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order),
+        signal: AbortSignal.timeout(5000)
+      });
+      if (res.ok) return;
+    } catch { setOnline(false); }
+  }
+  // Offline fallback — queue locally
+  pendingQueue.push(order);
+  localStorage.setItem('pendingQueue', JSON.stringify(pendingQueue));
+  showToast('📦 Saved offline — will sync when back online');
+}
+
+// ── Flush pending offline orders ──────────────────────────────────────────
+async function flushPendingQueue() {
+  if (!isOnline || !pendingQueue.length) return;
+  const toFlush = [...pendingQueue];
+  for (const order of toFlush) {
+    try {
+      const res = await fetch(`${API}/orders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(order)
+      });
+      if (res.ok) pendingQueue = pendingQueue.filter(o => o.id !== order.id);
+    } catch { break; }
+  }
+  localStorage.setItem('pendingQueue', JSON.stringify(pendingQueue));
+  if (!pendingQueue.length && toFlush.length) showToast('✅ Offline orders synced!');
+}
+
+// ── Receipt modal ─────────────────────────────────────────────────────────
+function showReceipt(order) {
+  document.getElementById('r-lines').innerHTML = order.items.map(i =>
+    `<div class="r-line"><span>${i.qty}× ${i.name}</span><span>₹${i.sub}</span></div>`
+  ).join('');
+  document.getElementById('r-total').textContent = '₹' + order.total;
+  const isO = order.payment === 'online';
+  document.getElementById('r-pay').innerHTML =
+    `<span class="r-pay-chip ${isO ? 'chip-online' : 'chip-cash'}">${isO ? '📱 Paid via Paytm / UPI' : '💵 Cash Payment'}</span>`;
+  const t = new Date(order.time);
+  document.getElementById('r-time').textContent =
+    t.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) + ' · ' +
+    t.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('receipt-modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('receipt-modal').classList.remove('open'); }
+
+function newBill() {
+  closeModal(); cart = {}; payMethod = 'cash'; setPayment('cash');
+  renderMenu(); renderBill();
+  showToast('✅ Bill saved! Ready for next customer.');
+}
+
+// ── Reconciliation ────────────────────────────────────────────────────────
+async function loadRecon() {
+  const date = document.getElementById('recon-date').value;
+  if (!date) return;
+
+  // Summary
+  try {
+    const res = await fetch(`${API}/reconcile?date=${date}`);
+    if (res.ok) {
+      const d = await res.json();
+      document.getElementById('s-cash').textContent = '₹' + d.cash;
+      document.getElementById('s-online').textContent = '₹' + d.online;
+      document.getElementById('s-total').textContent = '₹' + d.total;
+      document.getElementById('s-orders').textContent = d.orders;
+      document.getElementById('s-avg').textContent = '₹' + d.avg_bill;
+    }
+  } catch { showToast('Cannot reach server'); }
+
+  // Orders
+  try {
+    const res = await fetch(`${API}/orders?date=${date}`);
+    if (res.ok) {
+      const orders = await res.json();
+      renderOrderLog(orders);
+    }
+  } catch {}
+}
+
+function renderOrderLog(orders) {
+  const list = document.getElementById('orders-list');
+  if (!orders.length) { list.innerHTML = '<div class="no-orders">📭 No orders for this date</div>'; return; }
+  list.innerHTML = orders.slice().reverse().map((o, idx) => {
+    const t = new Date(o.time);
+    const time = t.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+    const itemsText = o.items.map(i => `${i.qty}×${i.name}`).join(', ');
+    const isO = o.payment === 'online';
+    return `<div class="order-card">
+      <div><div class="order-meta">#${orders.length - idx} · ${time}</div>
+      <div class="order-items">${itemsText}</div></div>
+      <div class="order-right">
+        <div class="order-amt">₹${o.total}</div>
+        <div><span class="chip ${isO ? 'chip-online' : 'chip-cash'}">${isO ? 'UPI' : 'Cash'}</span></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Nav ───────────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.pill').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('nav-' + name).classList.add('active');
+  if (name === 'reconcile') {
+    document.getElementById('recon-date').value = new Date().toISOString().split('T')[0];
+    loadRecon();
+  }
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ── Periodic sync ─────────────────────────────────────────────────────────
+setInterval(async () => {
+  await checkHealth();
+  if (isOnline) flushPendingQueue();
+}, 30000);
+
+// ── Start ─────────────────────────────────────────────────────────────────
+boot();
+</script>
+</body>
+</html>
