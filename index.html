@@ -142,9 +142,92 @@
   .mbtn-pri { background: var(--green); color: white; }
 
   .gap { height: 12px; }
+
+  /* ── PIN LOCK SCREEN ── */
+  #pin-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--green);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px 24px;
+    transition: opacity 0.35s ease;
+  }
+  #pin-screen.hidden { opacity: 0; pointer-events: none; }
+
+  .pin-logo { font-size: 52px; margin-bottom: 10px; }
+  .pin-shop-name { color: white; font-size: 22px; font-weight: 900; letter-spacing: 0.3px; text-align: center; }
+  .pin-shop-sub  { color: rgba(255,255,255,0.65); font-size: 12px; margin-top: 4px; margin-bottom: 32px; text-align: center; }
+  .pin-label { color: rgba(255,255,255,0.8); font-size: 13px; font-weight: 600; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+  .pin-dots { display: flex; gap: 14px; margin-bottom: 32px; }
+  .pin-dot  { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); background: transparent; transition: background 0.15s; }
+  .pin-dot.filled { background: white; border-color: white; }
+  .pin-dot.error  { background: #e74c3c; border-color: #e74c3c; animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%      { transform: translateX(-6px); }
+    40%      { transform: translateX(6px); }
+    60%      { transform: translateX(-4px); }
+    80%      { transform: translateX(4px); }
+  }
+  .pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 14px; }
+  .pkey {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    color: white; font-size: 22px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s, transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  .pkey:active { background: rgba(255,255,255,0.3); transform: scale(0.92); }
+  .pkey.del    { font-size: 18px; }
+  .pkey.empty  { background: transparent; border-color: transparent; pointer-events: none; }
+  .pin-error-msg { color: #ff8a80; font-size: 13px; font-weight: 600; margin-top: 18px; height: 20px; text-align: center; }
+  .pin-setup-note { color: rgba(255,255,255,0.7); font-size: 13px; text-align: center; margin-bottom: 20px; line-height: 1.6; max-width: 280px; }
+  .lock-btn {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.28);
+    color: white; padding: 6px 10px; border-radius: 20px;
+    font-size: 13px; cursor: pointer; font-weight: 600;
+    transition: background 0.15s;
+  }
+  .lock-btn:hover { background: rgba(255,255,255,0.28); }
+
 </style>
 </head>
 <body>
+
+<!-- ══ PIN LOCK SCREEN ══ -->
+<div id="pin-screen">
+  <div class="pin-logo">🥛</div>
+  <div class="pin-shop-name">Amrit Mattha</div>
+  <div class="pin-shop-sub">by Bolte Laddoo · Since 1963 · Kanpur</div>
+  <div class="pin-label" id="pin-label">Enter PIN</div>
+  <p class="pin-setup-note" id="pin-note"></p>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pkey" onclick="pinKey('1')">1</button>
+    <button class="pkey" onclick="pinKey('2')">2</button>
+    <button class="pkey" onclick="pinKey('3')">3</button>
+    <button class="pkey" onclick="pinKey('4')">4</button>
+    <button class="pkey" onclick="pinKey('5')">5</button>
+    <button class="pkey" onclick="pinKey('6')">6</button>
+    <button class="pkey" onclick="pinKey('7')">7</button>
+    <button class="pkey" onclick="pinKey('8')">8</button>
+    <button class="pkey" onclick="pinKey('9')">9</button>
+    <button class="pkey empty"></button>
+    <button class="pkey" onclick="pinKey('0')">0</button>
+    <button class="pkey del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-error-msg" id="pin-error"></div>
+</div>
+
 
 <!-- Header -->
 <div class="header">
@@ -155,9 +238,11 @@
       <div class="brand-sub">by Bolte Laddoo · Since 1963 · Kanpur</div>
     </div>
   </div>
-  <div class="nav-pills">
+  <div class="nav-pills" style="align-items:center;">
     <button class="pill active" onclick="showPage('bill')" id="nav-bill">🧾 Billing</button>
     <button class="pill" onclick="showPage('reconcile')" id="nav-reconcile">📊 Today</button>
+    <button class="lock-btn" onclick="changePinFlow()" title="Change PIN" style="font-size:11px;padding:6px 9px;">⚙️ PIN</button>
+    <button class="lock-btn" onclick="lockApp()" title="Lock">🔒</button>
   </div>
 </div>
 
@@ -476,27 +561,69 @@ async function loadRecon() {
   const date = document.getElementById('recon-date').value;
   if (!date) return;
 
-  // Summary
-  try {
-    const res = await fetch(`${API}/reconcile?date=${date}`);
-    if (res.ok) {
-      const d = await res.json();
-      document.getElementById('s-cash').textContent = '₹' + d.cash;
-      document.getElementById('s-online').textContent = '₹' + d.online;
-      document.getElementById('s-total').textContent = '₹' + d.total;
-      document.getElementById('s-orders').textContent = d.orders;
-      document.getElementById('s-avg').textContent = '₹' + d.avg_bill;
-    }
-  } catch { showToast('Cannot reach server'); }
+  // Always show zeros first so we never show "undefined"
+  setReconStats({ cash: 0, online: 0, total: 0, orders: 0, avg_bill: 0 });
 
-  // Orders
-  try {
-    const res = await fetch(`${API}/orders?date=${date}`);
-    if (res.ok) {
-      const orders = await res.json();
-      renderOrderLog(orders);
+  let orders = [];
+
+  if (isOnline) {
+    // ── Online: fetch from backend ──
+    try {
+      const [reconRes, ordersRes] = await Promise.all([
+        fetch(`${API}/reconcile?date=${date}`, { signal: AbortSignal.timeout(5000) }),
+        fetch(`${API}/orders?date=${date}`,    { signal: AbortSignal.timeout(5000) })
+      ]);
+      if (reconRes.ok) {
+        const d = await reconRes.json();
+        setReconStats(d);
+      }
+      if (ordersRes.ok) {
+        orders = await ordersRes.json();
+      }
+    } catch {
+      showToast('⚠️ Cannot reach server — showing local data');
+      orders = getLocalOrders(date);
+      setReconFromOrders(orders);
     }
-  } catch {}
+  } else {
+    // ── Offline: calculate from localStorage ──
+    orders = getLocalOrders(date);
+    setReconFromOrders(orders);
+  }
+
+  renderOrderLog(orders);
+}
+
+// Set all stat cards safely (never undefined)
+function setReconStats(d) {
+  document.getElementById('s-cash').textContent   = '₹' + (d.cash    ?? 0);
+  document.getElementById('s-online').textContent = '₹' + (d.online  ?? 0);
+  document.getElementById('s-total').textContent  = '₹' + (d.total   ?? 0);
+  document.getElementById('s-orders').textContent =        (d.orders  ?? 0);
+  document.getElementById('s-avg').textContent    = '₹' + (d.avg_bill ?? 0);
+}
+
+// Calculate summary from a local orders array (offline fallback)
+function setReconFromOrders(orders) {
+  let cash = 0, online = 0;
+  orders.forEach(o => {
+    if (o.payment === 'cash') cash += (o.total || 0);
+    else online += (o.total || 0);
+  });
+  const total = cash + online;
+  const count = orders.length;
+  setReconStats({
+    cash, online, total,
+    orders: count,
+    avg_bill: count > 0 ? Math.round(total / count) : 0
+  });
+}
+
+// Get orders from localStorage for a given date
+function getLocalOrders(date) {
+  try {
+    return JSON.parse(localStorage.getItem('orders_' + date) || '[]');
+  } catch { return []; }
 }
 
 function renderOrderLog(orders) {
@@ -542,6 +669,267 @@ setInterval(async () => {
   await checkHealth();
   if (isOnline) flushPendingQueue();
 }, 30000);
+
+
+// ══════════════════════════════════════════════════════════════
+// PIN LOCK SYSTEM — user sets their own PIN on first launch
+// ══════════════════════════════════════════════════════════════
+
+const PIN_STORAGE_KEY  = 'am_pin';         // where PIN is saved in localStorage
+const SESSION_KEY      = 'am_unlocked';    // stays unlocked for this browser session
+const MAX_ATTEMPTS     = 5;               // wrong tries before lockout
+const LOCKOUT_MS       = 60000;           // 60 second lockout
+
+// Modes: 'enter' | 'setup-new' | 'setup-confirm'
+let pinMode     = 'enter';
+let pinEntry    = '';
+let pinFirst    = '';   // holds first entry during setup confirmation
+let pinAttempts = 0;
+
+// ── Entry point ───────────────────────────────────────────────
+function initPinScreen() {
+  const savedPin = localStorage.getItem(PIN_STORAGE_KEY);
+
+  if (!savedPin) {
+    // First time ever — ask user to create a PIN
+    enterSetupMode();
+  } else if (sessionStorage.getItem(SESSION_KEY) === 'yes') {
+    // Already unlocked this session
+    dismissPinScreen();
+  } else {
+    // PIN exists — ask user to enter it
+    enterEnterMode();
+  }
+}
+
+// ── Mode: Enter existing PIN ──────────────────────────────────
+function enterEnterMode() {
+  pinMode  = 'enter';
+  pinEntry = '';
+  updateDots();
+  setLabel('🔐 Enter your PIN');
+  showNote('');
+  clearPinError();
+  checkLockout();
+}
+
+// ── Mode: Setup — choose new PIN ─────────────────────────────
+function enterSetupMode() {
+  pinMode  = 'setup-new';
+  pinEntry = '';
+  pinFirst = '';
+  updateDots();
+  setLabel('✨ Create your PIN');
+  showNote('Choose any 4-digit PIN you want. You will use this every time you open the app.');
+  clearPinError();
+}
+
+// ── Mode: Setup — confirm PIN ────────────────────────────────
+function enterConfirmMode() {
+  pinMode  = 'setup-confirm';
+  pinEntry = '';
+  updateDots();
+  setLabel('✅ Confirm your PIN');
+  showNote('Enter the same 4 digits again to confirm.');
+  clearPinError();
+}
+
+// ── Keypad: digit pressed ────────────────────────────────────
+function pinKey(digit) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updateDots();
+  if (pinEntry.length === 4) setTimeout(handlePinComplete, 150);
+}
+
+// ── Keypad: backspace ────────────────────────────────────────
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  updateDots();
+  clearPinError();
+}
+
+// ── What happens when 4 digits are entered ───────────────────
+function handlePinComplete() {
+  if (pinMode === 'setup-new') {
+    // Save first entry, ask to confirm
+    pinFirst = pinEntry;
+    enterConfirmMode();
+
+  } else if (pinMode === 'setup-confirm') {
+    if (pinEntry === pinFirst) {
+      // PINs match — save it and unlock
+      localStorage.setItem(PIN_STORAGE_KEY, pinEntry);
+      sessionStorage.setItem(SESSION_KEY, 'yes');
+      showNote('');
+      flashDotsGreen(() => dismissPinScreen());
+      showToast('✅ PIN set! App is now protected.');
+    } else {
+      // PINs don't match — restart setup
+      flashDotsRed();
+      showPinError('PINs did not match. Try again.');
+      setTimeout(() => enterSetupMode(), 700);
+    }
+
+  } else if (pinMode === 'change-verify') {
+    const savedPin = localStorage.getItem(PIN_STORAGE_KEY);
+    if (pinEntry === savedPin) {
+      // Current PIN verified — now set a new one
+      pinFirst = '';
+      enterSetupMode();
+      setLabel('🔑 Choose new PIN');
+      showNote('Enter a new 4-digit PIN.');
+    } else {
+      flashDotsRed();
+      showPinError('Wrong PIN. Try again.');
+      setTimeout(() => { pinEntry = ''; updateDots(); }, 500);
+    }
+
+  } else if (pinMode === 'enter') {
+    const savedPin = localStorage.getItem(PIN_STORAGE_KEY);
+    if (pinEntry === savedPin) {
+      // ✅ Correct
+      sessionStorage.setItem(SESSION_KEY, 'yes');
+      localStorage.removeItem('am_locked_until');
+      pinAttempts = 0;
+      flashDotsGreen(() => dismissPinScreen());
+    } else {
+      // ❌ Wrong
+      pinAttempts++;
+      flashDotsRed();
+      const remaining = MAX_ATTEMPTS - pinAttempts;
+      if (remaining <= 0) {
+        localStorage.setItem('am_locked_until', String(Date.now() + LOCKOUT_MS));
+        showPinError('Too many attempts. Locked for 60 seconds.');
+        disablePad(true);
+        setTimeout(() => {
+          disablePad(false);
+          pinAttempts = 0;
+          clearPinError();
+          enterEnterMode();
+        }, LOCKOUT_MS);
+      } else {
+        showPinError(remaining + ' attempt' + (remaining === 1 ? '' : 's') + ' left');
+        setTimeout(() => {
+          pinEntry = '';
+          updateDots();
+        }, 500);
+      }
+    }
+  }
+}
+
+// ── Lock the app manually (🔒 button) ────────────────────────
+function lockApp() {
+  sessionStorage.removeItem(SESSION_KEY);
+  pinEntry = '';
+  pinFirst = '';
+  pinAttempts = 0;
+  const screen = document.getElementById('pin-screen');
+  screen.style.display  = 'flex';
+  screen.style.opacity  = '1';
+  screen.classList.remove('hidden');
+  initPinScreen();
+}
+
+// ── Change PIN option (shown in header after unlock) ─────────
+function changePinFlow() {
+  // First verify current PIN, then setup new
+  pinMode  = 'change-verify';
+  pinEntry = '';
+  updateDots();
+  setLabel('🔑 Enter current PIN');
+  showNote('Enter your current PIN to change it.');
+  clearPinError();
+  // Re-show screen
+  const screen = document.getElementById('pin-screen');
+  screen.style.display  = 'flex';
+  screen.style.opacity  = '1';
+  screen.classList.remove('hidden');
+}
+
+// Extend handlePinComplete to support change-verify mode
+const _originalHandle = handlePinComplete;
+// (handled inline in the if-else chain above via pinMode check)
+
+// ── Lockout check ─────────────────────────────────────────────
+function checkLockout() {
+  const lockedUntil = parseInt(localStorage.getItem('am_locked_until') || '0');
+  if (Date.now() < lockedUntil) {
+    const secsLeft = Math.ceil((lockedUntil - Date.now()) / 1000);
+    showPinError('Locked. Try again in ' + secsLeft + 's');
+    disablePad(true);
+    setTimeout(checkLockout, 1000);
+    return true;
+  }
+  disablePad(false);
+  return false;
+}
+
+// ── UI helpers ────────────────────────────────────────────────
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById('d' + i);
+    dot.className = 'pin-dot' + (i < pinEntry.length ? ' filled' : '');
+  }
+}
+
+function flashDotsGreen(cb) {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('d' + i);
+    d.style.background  = '#27ae60';
+    d.style.borderColor = '#27ae60';
+  }
+  setTimeout(() => {
+    for (let i = 0; i < 4; i++) {
+      const d = document.getElementById('d' + i);
+      d.style.background = '';
+      d.style.borderColor = '';
+    }
+    if (cb) cb();
+  }, 400);
+}
+
+function flashDotsRed() {
+  for (let i = 0; i < 4; i++)
+    document.getElementById('d' + i).classList.add('error');
+  setTimeout(() => {
+    for (let i = 0; i < 4; i++)
+      document.getElementById('d' + i).classList.remove('error');
+  }, 500);
+}
+
+function dismissPinScreen() {
+  const screen = document.getElementById('pin-screen');
+  screen.classList.add('hidden');
+  setTimeout(() => screen.style.display = 'none', 400);
+}
+
+function setLabel(txt) {
+  document.getElementById('pin-label').textContent = txt;
+}
+
+function showNote(txt) {
+  const el = document.getElementById('pin-note');
+  if (el) el.textContent = txt;
+}
+
+function showPinError(msg) {
+  document.getElementById('pin-error').textContent = msg;
+}
+
+function clearPinError() {
+  document.getElementById('pin-error').textContent = '';
+}
+
+function disablePad(disabled) {
+  document.querySelectorAll('.pkey').forEach(k => k.disabled = disabled);
+}
+
+// ── Run PIN check immediately on page load ────────────────────
+initPinScreen();
+
+// ══════════════════════════════════════════════════════════════
 
 // ── Start ─────────────────────────────────────────────────────────────────
 boot();
