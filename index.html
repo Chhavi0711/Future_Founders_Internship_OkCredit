@@ -143,6 +143,89 @@
 
   .gap { height: 12px; }
 
+  /* ── GOOGLE SHEETS POPUP ── */
+  .sheets-popup-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 500;
+    align-items: flex-end; justify-content: center;
+    padding-bottom: 0;
+  }
+  .sheets-popup-overlay.open { display: flex; }
+  .sheets-popup {
+    background: var(--white); border-radius: 20px 20px 0 0;
+    padding: 22px 20px 32px; width: 100%; max-width: 520px;
+    box-shadow: 0 -4px 30px rgba(0,0,0,0.15);
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+  .sheets-popup-handle {
+    width: 40px; height: 4px; border-radius: 2px;
+    background: var(--border); margin: 0 auto 18px;
+  }
+  .sheets-popup-title {
+    font-size: 15px; font-weight: 800; margin-bottom: 4px;
+  }
+  .sheets-popup-sub {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5;
+  }
+  .sheets-input-wrap { position: relative; margin-bottom: 10px; }
+  .sheets-input {
+    width: 100%; border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 11px 40px 11px 12px; font-size: 13px; font-family: inherit;
+    outline: none; transition: border-color 0.15s;
+  }
+  .sheets-input:focus { border-color: var(--green); }
+  .sheets-clear-btn {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; color: var(--text-muted);
+    font-size: 16px; padding: 4px; line-height: 1;
+  }
+  .sheets-recent-label {
+    font-size: 11px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+  .sheets-recent-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .sheets-recent-item {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 12px; cursor: pointer;
+    transition: background 0.12s;
+  }
+  .sheets-recent-item:hover { background: var(--green-light); border-color: var(--green); }
+  .sheets-recent-icon { font-size: 16px; flex-shrink: 0; }
+  .sheets-recent-url {
+    font-size: 12px; color: var(--text); flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .sheets-recent-del {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 14px; padding: 2px 4px;
+    flex-shrink: 0;
+  }
+  .sheets-btn-row { display: flex; gap: 10px; }
+  .sheets-cancel-btn {
+    flex: 1; padding: 13px; border-radius: 10px;
+    border: 1.5px solid var(--border); background: transparent;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; color: var(--text);
+  }
+  .sheets-open-btn {
+    flex: 2; padding: 13px; border-radius: 10px;
+    border: none; background: var(--green); color: white;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    font-family: inherit; display: flex; align-items: center;
+    justify-content: center; gap: 7px;
+  }
+  .sheets-open-btn:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; }
+  .sheets-icon-btn {
+    background: none; border: none; cursor: pointer;
+    font-size: 18px; padding: 2px 4px; line-height: 1;
+    vertical-align: middle; margin-left: 4px;
+  }
+
   /* ── PIN LOCK SCREEN ── */
   #pin-screen {
     position: fixed; inset: 0; z-index: 9999;
@@ -297,8 +380,50 @@
     <div class="stats-wide-item" style="text-align:right;"><div class="lbl">Avg Bill</div><div class="val" id="s-avg">₹0</div></div>
   </div>
 
-  <p class="sec-title">Order Log</p>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;">
+    <p class="sec-title" style="margin:0;">Order Log</p>
+    <button class="sheets-icon-btn" onclick="openSheetsPopup()" title="Open / change Google Sheet">
+      <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_48dp.png"
+           style="width:22px;height:22px;vertical-align:middle;" alt="Google Sheets"
+           onerror="this.outerHTML='📊'">
+    </button>
+  </div>
   <div class="orders-list" id="orders-list"></div>
+</div>
+
+<!-- ══ GOOGLE SHEETS POPUP ══ -->
+<div class="sheets-popup-overlay" id="sheets-overlay" onclick="closeSheetsPopup(event)">
+  <div class="sheets-popup" onclick="event.stopPropagation()">
+    <div class="sheets-popup-handle"></div>
+    <div class="sheets-popup-title">📊 Google Sheet</div>
+    <div class="sheets-popup-sub">
+      Paste your Google Sheet link below to open and edit it.<br>
+      Your recent sheets are saved for quick access.
+    </div>
+
+    <div class="sheets-input-wrap">
+      <input
+        type="url"
+        id="sheets-url-input"
+        class="sheets-input"
+        placeholder="https://docs.google.com/spreadsheets/d/..."
+        oninput="onSheetsInputChange()"
+      >
+      <button class="sheets-clear-btn" onclick="clearSheetsInput()" title="Clear">✕</button>
+    </div>
+
+    <div id="sheets-recent-section" style="display:none;">
+      <div class="sheets-recent-label">Recent sheets</div>
+      <div class="sheets-recent-list" id="sheets-recent-list"></div>
+    </div>
+
+    <div class="sheets-btn-row">
+      <button class="sheets-cancel-btn" onclick="closeSheetsPopup()">Cancel</button>
+      <button class="sheets-open-btn" id="sheets-open-btn" onclick="openSheetUrl()" disabled>
+        🔗 Open Sheet
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- ══ RECEIPT MODAL ══ -->
@@ -930,6 +1055,150 @@ function disablePad(disabled) {
 initPinScreen();
 
 // ══════════════════════════════════════════════════════════════
+
+
+// ══════════════════════════════════════════════════════════════
+// GOOGLE SHEETS POPUP
+// ══════════════════════════════════════════════════════════════
+
+const SHEETS_HISTORY_KEY = 'am_sheets_history'; // localStorage key
+const MAX_RECENT         = 5;                    // how many recent URLs to keep
+
+// ── Open the popup ────────────────────────────────────────────
+function openSheetsPopup() {
+  // Pre-fill with last used URL if any
+  const history = getSheetsHistory();
+  const input   = document.getElementById('sheets-url-input');
+  input.value   = history.length > 0 ? history[0] : '';
+
+  renderSheetsRecent();
+  validateSheetsInput();
+
+  document.getElementById('sheets-overlay').classList.add('open');
+  setTimeout(() => input.focus(), 300);
+}
+
+// ── Close the popup ───────────────────────────────────────────
+function closeSheetsPopup(e) {
+  // If called from overlay click, only close if clicking the backdrop itself
+  if (e && e.target !== document.getElementById('sheets-overlay')) return;
+  document.getElementById('sheets-overlay').classList.remove('open');
+  document.getElementById('sheets-url-input').blur();
+}
+
+// ── When user types in the input ─────────────────────────────
+function onSheetsInputChange() {
+  validateSheetsInput();
+}
+
+// ── Enable/disable Open button based on valid URL ────────────
+function validateSheetsInput() {
+  const val = document.getElementById('sheets-url-input').value.trim();
+  const isValid = val.startsWith('https://docs.google.com/spreadsheets/') ||
+                  val.startsWith('https://docs.google.com/');
+  document.getElementById('sheets-open-btn').disabled = !isValid && val.length > 0
+    ? true
+    : val.length === 0;
+  // If empty, disable; if valid URL, enable
+  document.getElementById('sheets-open-btn').disabled = val.length === 0;
+}
+
+// ── Clear the input field ─────────────────────────────────────
+function clearSheetsInput() {
+  document.getElementById('sheets-url-input').value = '';
+  document.getElementById('sheets-open-btn').disabled = true;
+  document.getElementById('sheets-url-input').focus();
+}
+
+// ── Open the sheet in a new tab ───────────────────────────────
+function openSheetUrl() {
+  const url = document.getElementById('sheets-url-input').value.trim();
+  if (!url) return;
+
+  // Save to recent history
+  saveToSheetsHistory(url);
+
+  // Open in new tab
+  window.open(url, '_blank', 'noopener');
+
+  // Close popup
+  document.getElementById('sheets-overlay').classList.remove('open');
+  showToast('📊 Google Sheet opened!');
+}
+
+// ── Click a recent item → fill input ─────────────────────────
+function pickRecentSheet(url) {
+  document.getElementById('sheets-url-input').value = url;
+  validateSheetsInput();
+  document.getElementById('sheets-url-input').focus();
+}
+
+// ── Delete one item from recent list ─────────────────────────
+function deleteRecentSheet(url, e) {
+  e.stopPropagation(); // don't trigger pickRecentSheet
+  let history = getSheetsHistory();
+  history = history.filter(u => u !== url);
+  localStorage.setItem(SHEETS_HISTORY_KEY, JSON.stringify(history));
+  renderSheetsRecent();
+
+  // If deleted URL was in input, clear input too
+  const input = document.getElementById('sheets-url-input');
+  if (input.value.trim() === url) {
+    input.value = history.length > 0 ? history[0] : '';
+    validateSheetsInput();
+  }
+}
+
+// ── Render the recent list ────────────────────────────────────
+function renderSheetsRecent() {
+  const history = getSheetsHistory();
+  const section = document.getElementById('sheets-recent-section');
+  const list    = document.getElementById('sheets-recent-list');
+
+  if (history.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  list.innerHTML = history.map(url => {
+    // Make a short display name from the URL
+    const display = url.length > 52 ? url.slice(0, 50) + '…' : url;
+    return `<div class="sheets-recent-item" onclick="pickRecentSheet('${escUrl(url)}')">
+      <span class="sheets-recent-icon">📋</span>
+      <span class="sheets-recent-url" title="${escUrl(url)}">${escHtml(display)}</span>
+      <button class="sheets-recent-del" onclick="deleteRecentSheet('${escUrl(url)}', event)" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ── localStorage helpers ──────────────────────────────────────
+function getSheetsHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(SHEETS_HISTORY_KEY) || '[]');
+  } catch { return []; }
+}
+
+function saveToSheetsHistory(url) {
+  let history = getSheetsHistory();
+  // Remove if already exists (move to top)
+  history = history.filter(u => u !== url);
+  // Add to front
+  history.unshift(url);
+  // Keep only MAX_RECENT
+  history = history.slice(0, MAX_RECENT);
+  localStorage.setItem(SHEETS_HISTORY_KEY, JSON.stringify(history));
+}
+
+// ── Escape helpers (prevent XSS in onclick attrs) ─────────────
+function escUrl(url) {
+  return url.replace(/'/g, "\'");
+}
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════════════════════
 
 // ── Start ─────────────────────────────────────────────────────────────────
 boot();
