@@ -9,19 +9,33 @@ CORS(app)
 GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbzUt9vxKUC8FeC2mrBSbXJkw5JeEgSS5b4UHVG38HX3KOWis5aZD9vmnSaWMDyOGgyAXA/exec"
 
 MENU = [
-    {"id": 1,  "category": "Beverages",       "name": "Masala Chaas",              "price": 30,  "emoji": "🥛"},
-    {"id": 2,  "category": "Beverages",       "name": "Masala Chaas + Butter",     "price": 35,  "emoji": "🧈"},
-    {"id": 3,  "category": "Beverages",       "name": "Chaas (1 Litre)",           "price": 80,  "emoji": "🫙"},
-    {"id": 4,  "category": "Snacks (Breads)", "name": "Plain Bread + Butter",      "price": 30,  "emoji": "🍞"},
-    {"id": 5,  "category": "Snacks (Breads)", "name": "Multigrain Bread + Butter", "price": 30,  "emoji": "🌾"},
-    {"id": 6,  "category": "Snacks (Buns)",   "name": "Plain Bun + Butter",        "price": 40,  "emoji": "🥐"},
-    {"id": 7,  "category": "Snacks (Buns)",   "name": "Sweet Bun + Butter",        "price": 60,  "emoji": "🍯"},
-    {"id": 8,  "category": "Snacks (Buns)",   "name": "Multigrain Bun + Butter",   "price": 60,  "emoji": "🌾"},
-    {"id": 9,  "category": "Snacks (Buns)",   "name": "Masala Multigrain Bun",     "price": 60,  "emoji": "🌶️"},
-    {"id": 10, "category": "Snacks (Buns)",   "name": "Almond Bun + Butter",       "price": 60,  "emoji": "🌰"},
-    {"id": 11, "category": "Snacks (Buns)",   "name": "Mango Bun + Crush",         "price": 60,  "emoji": "🥭"},
-    {"id": 12, "category": "Snacks (Buns)",   "name": "Pineapple Bun + Crush",     "price": 60,  "emoji": "🍍"},
-    {"id": 13, "category": "Dairy Fresh",     "name": "White Butter (1 kg)",       "price": 600, "emoji": "🧈"},
+    # Mattha
+    {"id": 1,  "category": "Mattha",             "name": "Masala Mattha",             "price": 25,  "emoji": "🥛"},
+    {"id": 2,  "category": "Mattha",             "name": "Masala Mattha with Butter", "price": 35,  "emoji": "🧈"},
+    # Lassi
+    {"id": 3,  "category": "Lassi",              "name": "Sweet Lassi",               "price": 70,  "emoji": "🍶"},
+    {"id": 4,  "category": "Lassi",              "name": "Kesar Lassi",               "price": 70,  "emoji": "🌼"},
+    {"id": 5,  "category": "Lassi",              "name": "Mango Lassi",               "price": 70,  "emoji": "🥭"},
+    {"id": 6,  "category": "Lassi",              "name": "Strawberry Lassi",          "price": 70,  "emoji": "🍓"},
+    # Bread
+    {"id": 7,  "category": "Bread",              "name": "Milk Bread",                "price": 30,  "emoji": "🍞"},
+    {"id": 8,  "category": "Bread",              "name": "Multigrain Bread",          "price": 30,  "emoji": "🌾"},
+    # Buns
+    {"id": 9,  "category": "Buns",               "name": "Plain Bun",                 "price": 35,  "emoji": "🥐"},
+    {"id": 10, "category": "Buns",               "name": "Sweet Bun",                 "price": 50,  "emoji": "🍯"},
+    {"id": 11, "category": "Buns",               "name": "Multigrain Bun",            "price": 50,  "emoji": "🌾"},
+    {"id": 12, "category": "Buns",               "name": "Masala Multigrain Bun",     "price": 50,  "emoji": "🌶️"},
+    {"id": 13, "category": "Buns",               "name": "Almond Bun",                "price": 50,  "emoji": "🌰"},
+    {"id": 14, "category": "Buns",               "name": "Strawberry Bun",            "price": 60,  "emoji": "🍓"},
+    {"id": 15, "category": "Buns",               "name": "Pineapple Bun",             "price": 60,  "emoji": "🍍"},
+    {"id": 16, "category": "Buns",               "name": "Blueberry Bun",             "price": 60,  "emoji": "🫐"},
+    {"id": 17, "category": "Buns",               "name": "Mango Bun",                 "price": 60,  "emoji": "🥭"},
+    {"id": 18, "category": "Buns",               "name": "Cheesecake Bun",            "price": 60,  "emoji": "🍰"},
+    {"id": 19, "category": "Buns",               "name": "Pizza Bun",                 "price": 80,  "emoji": "🍕"},
+    # Flavoured Yogurt
+    {"id": 20, "category": "Flavoured Yogurt",   "name": "Strawberry Yogurt",         "price": 70,  "emoji": "🍓"},
+    {"id": 21, "category": "Flavoured Yogurt",   "name": "Mango Yogurt",              "price": 70,  "emoji": "🥭"},
+    {"id": 22, "category": "Flavoured Yogurt",   "name": "Blueberry Yogurt",          "price": 70,  "emoji": "🫐"},
 ]
 
 # Set Timezone to IST (GMT+5:30)
