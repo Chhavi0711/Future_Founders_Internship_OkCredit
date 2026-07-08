@@ -143,6 +143,69 @@
 
   .gap { height: 12px; }
 
+  /* ── PRINT BUTTON ── */
+  .mbtn-print {
+    background: #f0f0f0;
+    color: #1a1a1a;
+    border: 1.5px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .mbtn-print:hover { background: #e0e0e0; }
+
+  /* ── PRINT STYLESHEET ── */
+  /* Everything hidden by default when printing */
+  @media print {
+    /* Hide the entire page */
+    body > * { display: none !important; }
+
+    /* Show ONLY the receipt overlay contents */
+    #receipt-modal,
+    #receipt-modal .modal {
+      display: block !important;
+      position: static !important;
+      background: white !important;
+      box-shadow: none !important;
+      border-radius: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      max-height: none !important;
+      overflow: visible !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    /* Hide overlay backdrop */
+    #receipt-modal {
+      background: white !important;
+      inset: auto !important;
+      padding: 0 !important;
+    }
+
+    /* Hide buttons when printing */
+    .modal-btns { display: none !important; }
+
+    /* Receipt styling for paper */
+    .receipt-top { text-align: center; margin-bottom: 10px; }
+    .receipt-title { font-size: 16px; font-weight: 900; color: #000 !important; }
+    .receipt-sub   { font-size: 10px; color: #444 !important; }
+    .r-divider     { border-top: 1px dashed #999; margin: 8px 0; }
+    .r-line        { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+    .r-total       { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; margin-top: 6px; }
+    .r-pay         { text-align: center; margin-top: 8px; font-size: 12px; }
+    .r-pay-chip    { border: 1px solid #ccc; border-radius: 4px; padding: 3px 10px; font-size: 11px; }
+    #r-time        { text-align: center; font-size: 9px; color: #777 !important; margin-top: 6px; }
+
+    /* Print page size — thermal receipt width */
+    @page {
+      size: 80mm auto;
+      margin: 6mm;
+    }
+  }
+
+
   /* ── GOOGLE SHEETS POPUP ── */
   .sheets-popup-overlay {
     display: none; position: fixed; inset: 0;
@@ -443,6 +506,7 @@
     <div id="r-time" style="text-align:center;font-size:10px;color:#999;margin-top:8px;"></div>
     <div class="modal-btns">
       <button class="mbtn mbtn-sec" onclick="closeModal()">Close</button>
+      <button class="mbtn mbtn-print" onclick="printBill()">🖨️ Print</button>
       <button class="mbtn mbtn-pri" onclick="newBill()">New Bill ✨</button>
     </div>
   </div>
@@ -502,39 +566,25 @@ async function loadMenu() {
 
 // Fallback menu (same as backend) for offline use
 const FALLBACK_MENU = [
-  // Mattha
-  { id:1,  category:'Mattha',           name:'Masala Mattha',             price:25,  emoji:'🥛' },
-  { id:2,  category:'Mattha',           name:'Masala Mattha with Butter', price:35,  emoji:'🧈' },
-  // Lassi
-  { id:3,  category:'Lassi',            name:'Sweet Lassi',               price:70,  emoji:'🍶' },
-  { id:4,  category:'Lassi',            name:'Kesar Lassi',               price:70,  emoji:'🌼' },
-  { id:5,  category:'Lassi',            name:'Mango Lassi',               price:70,  emoji:'🥭' },
-  { id:6,  category:'Lassi',            name:'Strawberry Lassi',          price:70,  emoji:'🍓' },
-  // Bread
-  { id:7,  category:'Bread',            name:'Milk Bread',                price:30,  emoji:'🍞' },
-  { id:8,  category:'Bread',            name:'Multigrain Bread',          price:30,  emoji:'🌾' },
-  // Buns
-  { id:9,  category:'Buns',             name:'Plain Bun',                 price:35,  emoji:'🥐' },
-  { id:10, category:'Buns',             name:'Sweet Bun',                 price:50,  emoji:'🍯' },
-  { id:11, category:'Buns',             name:'Multigrain Bun',            price:50,  emoji:'🌾' },
-  { id:12, category:'Buns',             name:'Masala Multigrain Bun',     price:50,  emoji:'🌶️' },
-  { id:13, category:'Buns',             name:'Almond Bun',                price:50,  emoji:'🌰' },
-  { id:14, category:'Buns',             name:'Strawberry Bun',            price:60,  emoji:'🍓' },
-  { id:15, category:'Buns',             name:'Pineapple Bun',             price:60,  emoji:'🍍' },
-  { id:16, category:'Buns',             name:'Blueberry Bun',             price:60,  emoji:'🫐' },
-  { id:17, category:'Buns',             name:'Mango Bun',                 price:60,  emoji:'🥭' },
-  { id:18, category:'Buns',             name:'Cheesecake Bun',            price:60,  emoji:'🍰' },
-  { id:19, category:'Buns',             name:'Pizza Bun',                 price:80,  emoji:'🍕' },
-  // Flavoured Yogurt
-  { id:20, category:'Flavoured Yogurt', name:'Strawberry Yogurt',         price:70,  emoji:'🍓' },
-  { id:21, category:'Flavoured Yogurt', name:'Mango Yogurt',              price:70,  emoji:'🥭' },
-  { id:22, category:'Flavoured Yogurt', name:'Blueberry Yogurt',          price:70,  emoji:'🫐' },
+  { id:1,  category:'Beverages',      name:'Masala Chaas',             price:30,  emoji:'🥛' },
+  { id:2,  category:'Beverages',      name:'Masala Chaas + Butter',    price:35,  emoji:'🧈' },
+  { id:3,  category:'Beverages',      name:'Chaas (1 Litre)',          price:80,  emoji:'🫙' },
+  { id:4,  category:'Snacks (Breads)',name:'Plain Bread + Butter',     price:30,  emoji:'🍞' },
+  { id:5,  category:'Snacks (Breads)',name:'Multigrain Bread + Butter',price:30,  emoji:'🌾' },
+  { id:6,  category:'Snacks (Buns)', name:'Plain Bun + Butter',        price:40,  emoji:'🥐' },
+  { id:7,  category:'Snacks (Buns)', name:'Sweet Bun + Butter',        price:60,  emoji:'🍯' },
+  { id:8,  category:'Snacks (Buns)', name:'Multigrain Bun + Butter',   price:60,  emoji:'🌾' },
+  { id:9,  category:'Snacks (Buns)', name:'Masala Multigrain Bun',     price:60,  emoji:'🌶️' },
+  { id:10, category:'Snacks (Buns)', name:'Almond Bun + Butter',       price:60,  emoji:'🌰' },
+  { id:11, category:'Snacks (Buns)', name:'Mango Bun + Crush',         price:60,  emoji:'🥭' },
+  { id:12, category:'Snacks (Buns)', name:'Pineapple Bun + Crush',     price:60,  emoji:'🍍' },
+  { id:13, category:'Dairy Fresh',   name:'White Butter (1 kg)',       price:600, emoji:'🧈' },
 ];
 
 // ── Render Menu ───────────────────────────────────────────────────────────
 function renderMenu() {
   const categories = [...new Set(MENU_DATA.map(i => i.category))];
-  const catIcons = { 'Mattha':'🥛', 'Lassi':'🍶', 'Bread':'🍞', 'Buns':'🥐', 'Flavoured Yogurt':'🍦' };
+  const catIcons = { 'Beverages':'🥤', 'Snacks (Breads)':'🍞', 'Snacks (Buns)':'🥐', 'Dairy Fresh':'🧈' };
   const html = categories.map(cat => {
     const items = MENU_DATA.filter(i => i.category === cat);
     const grid = items.map(item => {
@@ -688,6 +738,19 @@ function showReceipt(order) {
 }
 
 function closeModal() { document.getElementById('receipt-modal').classList.remove('open'); }
+
+function printBill() {
+  // Make sure the modal is visible for printing
+  // (it already is since this button is inside the open modal)
+
+  // On Android with Canon PRINT app: window.print() triggers the
+  // system print dialog → user picks Canon PRINT → prints via WiFi/BT
+
+  // Small timeout so the browser registers the click before opening dialog
+  setTimeout(() => {
+    window.print();
+  }, 100);
+}
 
 function newBill() {
   closeModal(); cart = {}; payMethod = 'cash'; setPayment('cash');
