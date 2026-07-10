@@ -143,6 +143,54 @@
 
   .gap { height: 12px; }
 
+  /* ── MONTHLY VIEW ── */
+  .view-toggle {
+    display: flex; background: var(--bg); border-radius: var(--radius);
+    padding: 4px; gap: 4px; margin-bottom: 14px;
+    border: 0.5px solid var(--border);
+  }
+  .vtab {
+    flex: 1; padding: 8px; border-radius: 8px; border: none;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    background: transparent; color: var(--text-muted);
+    font-family: inherit; transition: all 0.15s;
+  }
+  .vtab.active { background: var(--white); color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+  .month-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--white); padding: 11px 14px;
+    border-radius: var(--radius); box-shadow: var(--shadow);
+    margin-bottom: 14px; border: 0.5px solid var(--border);
+  }
+  .month-row label { font-size: 12px; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+  .month-input {
+    flex: 1; border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 7px 10px; font-size: 13px; font-family: inherit;
+  }
+
+  .daily-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .daily-row {
+    background: var(--white); border-radius: var(--radius);
+    border: 0.5px solid var(--border); padding: 11px 14px;
+    box-shadow: var(--shadow);
+  }
+  .daily-row-top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 6px;
+  }
+  .daily-date { font-size: 13px; font-weight: 600; }
+  .daily-total { font-size: 15px; font-weight: 800; color: var(--green); }
+  .daily-bar-bg {
+    height: 5px; background: var(--bg); border-radius: 99px;
+    overflow: hidden; margin-bottom: 5px;
+  }
+  .daily-bar-fill { height: 100%; border-radius: 99px; background: var(--green); transition: width 0.4s ease; }
+  .daily-meta { display: flex; gap: 12px; font-size: 11px; color: var(--text-muted); }
+  .daily-meta span { display: flex; align-items: center; gap: 3px; }
+
+  .no-data { text-align: center; color: var(--text-muted); padding: 30px 20px; font-size: 13px; }
+
   /* ── PRINT BUTTON ── */
   .mbtn-print {
     background: #f0f0f0;
@@ -187,12 +235,24 @@
     /* Hide buttons when printing */
     .modal-btns { display: none !important; }
 
+    /* Show column headers and thank-you footer ONLY when printing */
+    #r-col-header { display: flex !important; }
+    #r-footer     { display: block !important; }
+
     /* Receipt styling for paper */
     .receipt-top { text-align: center; margin-bottom: 10px; }
     .receipt-title { font-size: 16px; font-weight: 900; color: #000 !important; }
     .receipt-sub   { font-size: 10px; color: #444 !important; }
     .r-divider     { border-top: 1px dashed #999; margin: 8px 0; }
+    .r-col-header  { display: flex; font-size: 10px; color: #777; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-bottom: 6px; }
+    .r-col-item    { flex: 1; }
+    .r-col-qty     { width: 28px; text-align: center; }
+    .r-col-amt     { width: 50px; text-align: right; }
     .r-line        { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 5px; }
+    .r-line-item   { flex: 1; }
+    .r-line-qty    { width: 28px; text-align: center; }
+    .r-line-amt    { width: 50px; text-align: right; }
+    .r-footer      { text-align: center; font-size: 9px; color: #888; margin-top: 10px; line-height: 1.7; border-top: 1px dashed #ccc; padding-top: 8px; }
     .r-total       { display: flex; justify-content: space-between; font-size: 15px; font-weight: 900; margin-top: 6px; }
     .r-pay         { text-align: center; margin-top: 8px; font-size: 12px; }
     .r-pay-chip    { border: 1px solid #ccc; border-radius: 4px; padding: 3px 10px; font-size: 11px; }
@@ -426,32 +486,70 @@
 
 <!-- ══ RECONCILE PAGE ══ -->
 <div class="page" id="page-reconcile">
-  <div class="date-row">
-    <label>📅 Date</label>
-    <input type="date" id="recon-date" onchange="loadRecon()">
-    <button class="go-btn" onclick="loadRecon()">Go</button>
+
+  <!-- Day / Month toggle -->
+  <div class="view-toggle">
+    <button class="vtab active" id="vtab-day"   onclick="switchView('day')">📅 Daily</button>
+    <button class="vtab"        id="vtab-month" onclick="switchView('month')">📆 Monthly</button>
   </div>
 
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-val o" id="s-cash">₹0</div><div class="stat-lbl">💵 Cash</div></div>
-    <div class="stat-card"><div class="stat-val b" id="s-online">₹0</div><div class="stat-lbl">📱 Online</div></div>
-    <div class="stat-card"><div class="stat-val g" id="s-total">₹0</div><div class="stat-lbl">🏷 Total</div></div>
+  <!-- ── DAILY VIEW ── -->
+  <div id="view-day">
+    <div class="date-row">
+      <label>📅 Date</label>
+      <input type="date" id="recon-date" onchange="loadRecon()">
+      <button class="go-btn" onclick="loadRecon()">Go</button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val o" id="s-cash">₹0</div><div class="stat-lbl">💵 Cash</div></div>
+      <div class="stat-card"><div class="stat-val b" id="s-online">₹0</div><div class="stat-lbl">📱 Online</div></div>
+      <div class="stat-card"><div class="stat-val g" id="s-total">₹0</div><div class="stat-lbl">🏷 Total</div></div>
+    </div>
+
+    <div class="stats-wide">
+      <div class="stats-wide-item"><div class="lbl">Orders</div><div class="val" id="s-orders">0</div></div>
+      <div class="stats-wide-item" style="text-align:right;"><div class="lbl">Avg Bill</div><div class="val" id="s-avg">₹0</div></div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;">
+      <p class="sec-title" style="margin:0;">Order Log</p>
+      <button class="sheets-icon-btn" onclick="openSheetsPopup()" title="Open / change Google Sheet">
+        <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_48dp.png"
+             style="width:22px;height:22px;vertical-align:middle;" alt="Google Sheets"
+             onerror="this.outerHTML='📊'">
+      </button>
+    </div>
+    <div class="orders-list" id="orders-list"></div>
   </div>
 
-  <div class="stats-wide">
-    <div class="stats-wide-item"><div class="lbl">Orders</div><div class="val" id="s-orders">0</div></div>
-    <div class="stats-wide-item" style="text-align:right;"><div class="lbl">Avg Bill</div><div class="val" id="s-avg">₹0</div></div>
+  <!-- ── MONTHLY VIEW ── -->
+  <div id="view-month" style="display:none;">
+    <div class="month-row">
+      <label>📆 Month</label>
+      <input type="month" id="month-input" class="month-input" onchange="loadMonthly()">
+      <button class="go-btn" onclick="loadMonthly()">Go</button>
+    </div>
+
+    <!-- Monthly totals -->
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-val o" id="m-cash">₹0</div><div class="stat-lbl">💵 Cash</div></div>
+      <div class="stat-card"><div class="stat-val b" id="m-online">₹0</div><div class="stat-lbl">📱 Online</div></div>
+      <div class="stat-card"><div class="stat-val g" id="m-total">₹0</div><div class="stat-lbl">🏷 Total</div></div>
+    </div>
+
+    <div class="stats-wide">
+      <div class="stats-wide-item"><div class="lbl">Total Orders</div><div class="val" id="m-orders">0</div></div>
+      <div class="stats-wide-item" style="text-align:right;"><div class="lbl">Avg Bill</div><div class="val" id="m-avg">₹0</div></div>
+    </div>
+
+    <!-- Per-day breakdown -->
+    <p class="sec-title" style="margin:14px 0 8px;">Day-by-day</p>
+    <div class="daily-list" id="daily-list">
+      <div class="no-data">Select a month above to see daily breakdown</div>
+    </div>
   </div>
 
-  <div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;">
-    <p class="sec-title" style="margin:0;">Order Log</p>
-    <button class="sheets-icon-btn" onclick="openSheetsPopup()" title="Open / change Google Sheet">
-      <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_48dp.png"
-           style="width:22px;height:22px;vertical-align:middle;" alt="Google Sheets"
-           onerror="this.outerHTML='📊'">
-    </button>
-  </div>
-  <div class="orders-list" id="orders-list"></div>
 </div>
 
 <!-- ══ GOOGLE SHEETS POPUP ══ -->
@@ -499,11 +597,21 @@
       <div class="receipt-sub">GSTIN: 09CROPM3071N1Z2</div>
     </div>
     <hr class="r-divider">
+    <div class="r-col-header" id="r-col-header" style="display:none;">
+      <span class="r-col-item">Item</span>
+      <span class="r-col-qty">Qty</span>
+      <span class="r-col-amt">Amt</span>
+    </div>
     <div id="r-lines"></div>
     <hr class="r-divider">
     <div class="r-total"><span>TOTAL</span><span id="r-total">₹0</span></div>
     <div class="r-pay" id="r-pay"></div>
     <div id="r-time" style="text-align:center;font-size:10px;color:#999;margin-top:8px;"></div>
+    <div class="r-footer" id="r-footer" style="display:none;">
+      Thank you for visiting!<br>
+      Amrit Mattha by Bolte Laddoo<br>
+      Kanpur &middot; Since 1963
+    </div>
     <div class="modal-btns">
       <button class="mbtn mbtn-sec" onclick="closeModal()">Close</button>
       <button class="mbtn mbtn-print" onclick="printBill()">🖨️ Print</button>
@@ -723,17 +831,31 @@ async function flushPendingQueue() {
 
 // ── Receipt modal ─────────────────────────────────────────────────────────
 function showReceipt(order) {
+  // Item rows — 3 columns: name | qty | amount
   document.getElementById('r-lines').innerHTML = order.items.map(i =>
-    `<div class="r-line"><span>${i.qty}× ${i.name}</span><span>₹${i.sub}</span></div>`
+    `<div class="r-line">
+      <span class="r-line-item">${i.name}</span>
+      <span class="r-line-qty">${i.qty}</span>
+      <span class="r-line-amt">₹${i.sub}</span>
+    </div>`
   ).join('');
+
   document.getElementById('r-total').textContent = '₹' + order.total;
+
   const isO = order.payment === 'online';
   document.getElementById('r-pay').innerHTML =
     `<span class="r-pay-chip ${isO ? 'chip-online' : 'chip-cash'}">${isO ? '📱 Paid via Paytm / UPI' : '💵 Cash Payment'}</span>`;
+
   const t = new Date(order.time);
   document.getElementById('r-time').textContent =
     t.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}) + ' · ' +
     t.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+
+  // Show column headers + thank-you footer only when printing
+  // (hidden in normal app view, shown via @media print)
+  document.getElementById('r-col-header').style.display = 'none';
+  document.getElementById('r-footer').style.display     = 'none';
+
   document.getElementById('receipt-modal').classList.add('open');
 }
 
@@ -854,6 +976,8 @@ function showPage(name) {
   document.getElementById('page-' + name).classList.add('active');
   document.getElementById('nav-' + name).classList.add('active');
   if (name === 'reconcile') {
+    // Reset to daily view
+    switchView('day');
     document.getElementById('recon-date').value = new Date().toISOString().split('T')[0];
     loadRecon();
   }
@@ -1276,6 +1400,100 @@ function escHtml(str) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+
+
+// ══════════════════════════════════════════════════════════════
+// DAY / MONTH VIEW SWITCHER
+// ══════════════════════════════════════════════════════════════
+
+let currentView = 'day';  // 'day' | 'month'
+
+function switchView(v) {
+  currentView = v;
+  document.getElementById('view-day').style.display   = v === 'day'   ? 'block' : 'none';
+  document.getElementById('view-month').style.display = v === 'month' ? 'block' : 'none';
+  document.getElementById('vtab-day').classList.toggle('active',   v === 'day');
+  document.getElementById('vtab-month').classList.toggle('active', v === 'month');
+
+  if (v === 'month') {
+    // Default to current month
+    const now = new Date();
+    const ym  = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+    document.getElementById('month-input').value = ym;
+    loadMonthly();
+  }
+}
+
+// ── Load monthly data from backend ───────────────────────────
+async function loadMonthly() {
+  const month = document.getElementById('month-input').value;
+  if (!month) return;
+
+  // Reset totals
+  document.getElementById('m-cash').textContent   = '₹0';
+  document.getElementById('m-online').textContent = '₹0';
+  document.getElementById('m-total').textContent  = '₹0';
+  document.getElementById('m-orders').textContent = '0';
+  document.getElementById('m-avg').textContent    = '₹0';
+  document.getElementById('daily-list').innerHTML =
+    '<div class="no-data">Loading…</div>';
+
+  try {
+    const res = await fetch(`${API}/monthly?month=${month}`,
+      { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) throw new Error('bad response');
+    const d = await res.json();
+
+    // Monthly totals
+    document.getElementById('m-cash').textContent   = '₹' + (d.cash    ?? 0);
+    document.getElementById('m-online').textContent = '₹' + (d.online  ?? 0);
+    document.getElementById('m-total').textContent  = '₹' + (d.total   ?? 0);
+    document.getElementById('m-orders').textContent =        (d.orders  ?? 0);
+    document.getElementById('m-avg').textContent    = '₹' + (d.avg_bill ?? 0);
+
+    // Per-day breakdown
+    renderDailyList(d.days  || [], d.total || 0);
+
+  } catch (err) {
+    document.getElementById('daily-list').innerHTML =
+      '<div class="no-data">Could not load monthly data. Check connection.</div>';
+    showToast('⚠️ Could not load monthly data');
+  }
+}
+
+// ── Render the per-day bar list ───────────────────────────────
+function renderDailyList(daily, monthTotal) {
+  const list = document.getElementById('daily-list');
+  if (!daily.length) {
+    list.innerHTML = '<div class="no-data">No orders found for this month.</div>';
+    return;
+  }
+
+  const maxDay = Math.max(...daily.map(d => d.total));
+
+  list.innerHTML = daily.slice().reverse().map(d => {
+    const pct     = maxDay > 0 ? Math.round((d.total / maxDay) * 100) : 0;
+    const dateObj = new Date(d.date + 'T00:00:00');
+    const label   = dateObj.toLocaleDateString('en-IN', { weekday:'short', day:'numeric', month:'short' });
+
+    return `<div class="daily-row">
+      <div class="daily-row-top">
+        <span class="daily-date">${label}</span>
+        <span class="daily-total">₹${d.total}</span>
+      </div>
+      <div class="daily-bar-bg">
+        <div class="daily-bar-fill" style="width:${pct}%"></div>
+      </div>
+      <div class="daily-meta">
+        <span>🧾 ${d.orders} order${d.orders !== 1 ? 's' : ''}</span>
+        <span>💵 ₹${d.cash} cash</span>
+        <span>📱 ₹${d.online} online</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
 
 // ── Start ─────────────────────────────────────────────────────────────────
 boot();
