@@ -126,9 +126,6 @@ The frontend is served automatically at `/` from `backend/app.py`.
 
 ---
 
-## License
-
-See [LICENSE](./LICENSE).
 
 ## Acknowledgements
 
